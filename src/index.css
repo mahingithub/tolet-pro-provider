@@ -1,0 +1,42 @@
+/* Hind Siliguri carries the Bengali; Inter carries Latin text and digits.
+   Loading Bengali first matters — the fallback system font mangles যুক্তাক্ষর
+   on many Android builds, which is most of this audience. */
+@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Hind Siliguri', Inter, ui-sans-serif, system-ui, sans-serif;
+  background-color: #f4f6f8;
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Stops the whole shell rubber-banding on iOS while a list scrolls inside. */
+  overscroll-behavior-y: none;
+}
+
+/* Kill the blue tap flash — with 52px targets everywhere it fires constantly
+   and makes the UI feel cheap. The active:scale on Button is the feedback. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Number inputs: no spinners. A provider typing a price on a phone will never
+   use them, and they steal width from the digits. */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}

@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Environment / secrets — NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+
+# OS metadata
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor swap files
+*.swp
+.env
+.env.*
+*.keystore
+*.jks
+*.p12
+*.p8
+*.pem
+test_*.js
+test_*.cjs
+test_*.mjs
+capacitor.config.*
+src/test/
+*.test.js
+*.test.jsx

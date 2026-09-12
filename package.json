@@ -1,0 +1,36 @@
+{
+  "name": "tolet-pro-provider",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "TO-LET PRO — provider app (সেবা প্রদানকারী). Standalone Vite app on its own origin, sharing the one backend.",
+  "scripts": {
+    "dev": "vite --host --port 5175",
+    "build": "vite build",
+    "preview": "vite preview --port 5175",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.14.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-leaflet": "^4.2.1",
+    "react-router-dom": "^7.14.1",
+    "sonner": "^2.0.7"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/ui": "^2.1.9",
+    "autoprefixer": "^10.4.17",
+    "jsdom": "^25.0.1",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
+    "vite": "^5.0.8",
+    "vitest": "^2.1.9"
+  }
+}
