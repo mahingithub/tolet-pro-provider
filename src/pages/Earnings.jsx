@@ -117,6 +117,9 @@ const Earnings = () => {
         ))}
       </div>
 
+      {/* Four short tiles. Stacked they push everything else off a desktop
+          screen for no reason; side by side they read as one summary row. */}
+      <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 xl:grid-cols-4 lg:gap-3">
       <Stat icon={Eye} value={stats?.views} label={t('জন দেখেছেন', 'people viewed')} />
       <Stat
         icon={Phone} value={stats?.contacts}
@@ -129,6 +132,7 @@ const Earnings = () => {
         icon={Repeat} value={stats?.repeatCustomers}
         label={t('জন আবার এসেছেন', 'came back')}
       />
+      </div>
 
       {/* Building density is this platform's real advantage over a general
           marketplace: twelve flats in one building is route economics nobody

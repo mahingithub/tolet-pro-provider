@@ -15,6 +15,7 @@ import Orders from './pages/Orders.jsx';
 import Listing from './pages/Listing.jsx';
 import Khata from './pages/Khata.jsx';
 import KhataParty from './pages/KhataParty.jsx';
+import KhataReport from './pages/KhataReport.jsx';
 import Earnings from './pages/Earnings.jsx';
 import Reviews from './pages/Reviews.jsx';
 import Profile from './pages/Profile.jsx';
@@ -80,6 +81,8 @@ function App() {
               >
                 <Route index element={<Orders />} />
                 <Route path="khata" element={<Khata />} />
+                {/* Literal path BEFORE '/:id', or "report" is read as a party id. */}
+                <Route path="khata/report" element={<KhataReport />} />
                 <Route path="khata/:id" element={<KhataParty />} />
                 <Route path="listing" element={<Listing />} />
                 <Route path="earnings" element={<Earnings />} />

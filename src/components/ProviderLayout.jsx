@@ -91,30 +91,81 @@ const ProviderLayout = () => {
   const { t } = useLang();
 
   return (
-    <div className="min-h-screen bg-[#f4f6f8] flex flex-col">
-      {/* Header — business name + the one switch */}
-      <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-[#ba0036]">
-              TO-LET PRO
-            </p>
-            <h1 className="text-base font-bold text-gray-900 truncate">
-              {activeProvider?.name || t('সেবা প্রদানকারী', 'Provider')}
-            </h1>
-          </div>
+    <div className="min-h-screen bg-[#f4f6f8]">
+      {/* ─── Sidebar, desktop only ────────────────────────────────────────────
+          The same five destinations as the phone's tab bar, not a different
+          information architecture. A shopkeeper who learns the app on his
+          phone and then opens it on the shop counter's PC should recognise it
+          immediately — the layout changes, the vocabulary does not. */}
+      <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 bg-white border-r border-gray-200 z-40">
+        <div className="px-5 py-5 border-b border-gray-100">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#ba0036]">
+            TO-LET PRO SERVICES
+          </p>
+          <h1 className="text-lg font-bold text-gray-900 truncate mt-0.5">
+            {activeProvider?.name || t('সেবা প্রদানকারী', 'Provider')}
+          </h1>
+        </div>
+
+        <nav className="flex-1 px-3 py-4 space-y-1">
+          {TABS.map(({ to, end, Icon, bn, en }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) => [
+                'flex items-center gap-3 px-3 py-3 rounded-xl text-[15px] font-bold transition-colors min-h-tap',
+                isActive
+                  ? 'bg-crimson-50 text-[#ba0036]'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+              ].join(' ')}
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon size={20} strokeWidth={isActive ? 2.4 : 1.9} />
+                  {t(bn, en)}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* The one switch keeps its own corner here rather than riding in a
+            header, so it is in a fixed place on both layouts. */}
+        <div className="px-3 py-4 border-t border-gray-100">
           <OpenClosedSwitch />
         </div>
-      </header>
+      </aside>
 
-      <main className="flex-1 w-full max-w-2xl mx-auto px-4 py-4 pb-28">
-        <Outlet />
-      </main>
+      <div className="lg:pl-64 flex flex-col min-h-screen">
+        {/* Header — phone only. On desktop its two jobs (who am I, am I open)
+            belong to the sidebar, and repeating them would just eat the top of
+            every screen. */}
+        <header className="lg:hidden sticky top-0 z-40 bg-white border-b border-gray-200">
+          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[#ba0036]">
+                TO-LET PRO SERVICES
+              </p>
+              <h1 className="text-base font-bold text-gray-900 truncate">
+                {activeProvider?.name || t('সেবা প্রদানকারী', 'Provider')}
+              </h1>
+            </div>
+            <OpenClosedSwitch />
+          </div>
+        </header>
 
-      {/* Bottom tabs. Fixed, thumb-height, with the safe-area inset so the
-          labels clear the home indicator on a notched phone. */}
+        {/* `pb-28` clears the fixed tab bar on a phone; there is no tab bar on
+            desktop, so the padding goes with it. */}
+        <main className="flex-1 w-full max-w-2xl lg:max-w-5xl mx-auto px-4 lg:px-8 py-4 lg:py-8 pb-28 lg:pb-8">
+          <Outlet />
+        </main>
+      </div>
+
+      {/* Bottom tabs — phone only. Fixed, thumb-height, with the safe-area
+          inset so the labels clear the home indicator on a notched phone. */}
       <nav
-        className="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="max-w-2xl mx-auto grid grid-cols-5">

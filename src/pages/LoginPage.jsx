@@ -76,7 +76,7 @@ const LoginPage = () => {
     <div className="min-h-screen bg-[#f4f6f8] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm space-y-4">
         <div className="text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#ba0036]">TO-LET PRO</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-[#ba0036]">TO-LET PRO SERVICES</p>
           <h1 className="text-2xl font-bold text-gray-900 mt-1">
             {t('সেবা প্রদানকারী', 'Provider')}
           </h1>

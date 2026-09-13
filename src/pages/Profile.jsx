@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useProviderAuth } from '../context/ProviderAuthContext.jsx';
 import { useLang } from '../context/LanguageContext.jsx';
 import { Button, Card, Badge } from '../components/ui/index.js';
+import { updateKhataSettings } from '../services/ledgerService.js';
 import * as push from '../services/pushService.js';
 
 /**
@@ -103,13 +104,30 @@ function PushRow() {
   );
 }
 const Profile = () => {
-  const { activeProvider, user, logout } = useProviderAuth();
+  const { activeProvider, user, setUser, logout } = useProviderAuth();
   const { t, lang, setLang } = useLang();
 
   const verified = activeProvider?.isVerified;
 
+  // Defaults ON, because a kill switch that has to be armed before it can be
+  // used is not a kill switch. It gates nothing on its own — consent is per
+  // customer and defaults off — so nothing sends until he arms it there.
+  const autoOn = user?.khataAutoReminders !== false;
+
+  const toggleAutoReminders = async () => {
+    try {
+      const res = await updateKhataSettings({ autoReminders: !autoOn });
+      setUser(res.merchant);
+      toast.success(res.merchant.khataAutoReminders
+        ? t('স্বয়ংক্রিয় রিমাইন্ডার চালু', 'Automatic reminders on')
+        : t('সব স্বয়ংক্রিয় রিমাইন্ডার বন্ধ', 'All automatic reminders off'));
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start lg:max-w-4xl">
       <Card>
         <p className="text-sm font-bold text-gray-500">{t('প্রোভাইডার', 'Provider')}</p>
         <p className="text-lg font-bold text-gray-900">{activeProvider?.name || user?.name}</p>
@@ -148,6 +166,39 @@ const Profile = () => {
             English
           </Button>
         </div>
+      </Card>
+
+      {/* The panic button. One tap stops every automated খাতা reminder he has
+          switched on, without going page by page — which is what he will want
+          the moment a customer complains about one. */}
+      <Card className="space-y-2.5">
+        <button
+          type="button"
+          onClick={toggleAutoReminders}
+          className="w-full flex items-start gap-3 text-left active:scale-[0.99] transition-transform"
+        >
+          <span className={[
+            'mt-0.5 w-10 h-6 shrink-0 rounded-full transition-colors relative',
+            autoOn ? 'bg-emerald-500' : 'bg-gray-300',
+          ].join(' ')}>
+            <span className={[
+              'absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform',
+              autoOn ? 'translate-x-[18px]' : 'translate-x-0.5',
+            ].join(' ')} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-bold text-gray-800">
+              {t('স্বয়ংক্রিয় বাকির রিমাইন্ডার', 'Automatic credit reminders')}
+            </span>
+            <span className="block text-xs text-gray-500 mt-0.5 leading-relaxed">
+              {autoOn
+                ? t('যাদের জন্য চালু করেছেন শুধু তাদেরই যাবে। বন্ধ করলে সবগুলো একসাথে থামবে।',
+                    'Only goes to customers you switched on. Turning this off stops all of them at once.')
+                : t('সব বন্ধ আছে — কারও কাছে নিজে নিজে বার্তা যাবে না।',
+                    'All off — nothing is sent automatically to anyone.')}
+            </span>
+          </span>
+        </button>
       </Card>
 
       <Button variant="danger" icon={LogOut} fullWidth onClick={logout}>

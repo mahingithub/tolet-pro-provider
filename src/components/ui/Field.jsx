@@ -24,7 +24,11 @@ const Field = ({
 
 export const inputClass = [
   'w-full min-h-tap px-4 py-3 rounded-xl bg-white',
-  'border border-gray-300 focus:border-[#ba0036] focus:ring-2 focus:ring-[#ba0036]/15',
+  // gray-200 rather than 300: at the old weight every field read as a boxed
+  // cell on a form, and a screen of them looked like paperwork. The focus ring
+  // does the work of showing which one is live.
+  'border border-gray-200 hover:border-gray-300',
+  'focus:border-[#ba0036] focus:ring-4 focus:ring-[#ba0036]/10',
   'text-base text-gray-900 placeholder:text-gray-400 outline-none transition',
 ].join(' ');
 

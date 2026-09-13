@@ -40,3 +40,31 @@ input[type='number']::-webkit-inner-spin-button {
 input[type='number'] {
   -moz-appearance: textfield;
 }
+
+/* ─── Keyboard focus ─────────────────────────────────────────────────────────
+   Most of the interactive things in this app are raw <button> elements rather
+   than the Button component — tab bars, list rows, sheet dismissers, the
+   period chips. On a phone that never mattered because nobody tabs. The
+   desktop layout changed that, and without this a keyboard user has no idea
+   where they are.
+
+   `:focus-visible`, never `:focus`. The browser only matches it for keyboard
+   and assistive navigation, so a mouse click leaves no ring behind — which is
+   the reason plain `:focus` outlines get deleted from projects and never come
+   back. */
+button:focus-visible,
+a:focus-visible,
+[role='button']:focus-visible,
+summary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(186, 0, 54, 0.45);
+  border-radius: 0.75rem;
+}
+
+/* Inputs already carry their own focus ring from `inputClass`; a second one
+   here would double-draw it. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  box-shadow: none;
+}

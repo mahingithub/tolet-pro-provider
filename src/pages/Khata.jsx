@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Search, UserPlus, BookOpen, CloudOff, ShoppingCart, Wallet, X,
+  Plus, Search, UserPlus, BookOpen, CloudOff, ShoppingCart, Wallet, X, BarChart3, PackagePlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -141,10 +141,26 @@ function AddPartySheet({ open, onClose, onAdded }) {
 }
 
 /** বিক্রি / খরচ — the daily cash page, with nobody attached. */
+/** নগদ / বিকাশ / ব্যাংক — three pockets, because that is how the money moves. */
+const ACCOUNTS = [
+  { id: 'cash', bn: 'নগদ', en: 'Cash' },
+  { id: 'bkash', bn: 'বিকাশ', en: 'bKash' },
+  { id: 'bank', bn: 'ব্যাংক', en: 'Bank' },
+];
+
+const CASH_TITLES = {
+  sale: { bn: 'আজকের বিক্রি', en: "Today's sale" },
+  expense: { bn: 'আজকের খরচ', en: "Today's expense" },
+  purchase: { bn: 'মাল তোলা (ক্রয়)', en: 'Stock purchase' },
+};
+
 function CashSheet({ open, kind, onClose, onSaved }) {
   const { t } = useLang();
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
+  // Cash is the default because a counter sale is cash unless he says
+  // otherwise, and because that is the one he taps most.
+  const [account, setAccount] = useState('cash');
   const isSale = kind === 'sale';
 
   if (!open) return null;
@@ -158,12 +174,12 @@ function CashSheet({ open, kind, onClose, onSaved }) {
     enqueue({
       clientEntryId: newClientEntryId(),
       payload: {
-        kind, amount: Math.round(n), note: note.trim(),
+        kind, amount: Math.round(n), note: note.trim(), account,
         clientEntryId: undefined,
       },
     });
     onSaved();
-    setAmount(''); setNote('');
+    setAmount(''); setNote(''); setAccount('cash');
     onClose();
   };
 
@@ -176,7 +192,7 @@ function CashSheet({ open, kind, onClose, onSaved }) {
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.25rem)' }}
       >
         <h2 className="text-lg font-bold text-gray-900">
-          {isSale ? t('আজকের বিক্রি', "Today's sale") : t('আজকের খরচ', "Today's expense")}
+          {t(CASH_TITLES[kind]?.bn || '', CASH_TITLES[kind]?.en || '')}
         </h2>
 
         <Field label={t('কত টাকা', 'How much')} htmlFor="camt" required>
@@ -187,6 +203,28 @@ function CashSheet({ open, kind, onClose, onSaved }) {
               value={amount} onChange={(e) => setAmount(e.target.value)}
               className={`${inputClass} pl-11 text-2xl font-bold tabular-nums h-16`}
             />
+          </div>
+        </Field>
+
+        {/* Which pocket. Three taps' worth of choice rather than a dropdown —
+            he is mid-sale with a customer waiting. */}
+        <Field label={t('কোথায়', 'Where')}>
+          <div className="grid grid-cols-3 gap-2">
+            {ACCOUNTS.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => setAccount(a.id)}
+                className={[
+                  'min-h-tap rounded-xl border text-base font-bold transition-all active:scale-[0.97]',
+                  account === a.id
+                    ? 'bg-[#ba0036] border-[#ba0036] text-white'
+                    : 'bg-white border-gray-200 text-gray-700',
+                ].join(' ')}
+              >
+                {t(a.bn, a.en)}
+              </button>
+            ))}
           </div>
         </Field>
 
@@ -247,7 +285,13 @@ const Khata = () => {
   }
 
   return (
-    <div className="space-y-3 -mx-4">
+    <div className="space-y-3 -mx-4 lg:mx-0">
+      {/* Two columns on a desktop: what he is owed and today's cash on the
+          left, the book itself on the right. On a phone it stays one column in
+          the same order — the summary is what he opens খাতা to see, so it must
+          not move below the fold on the smaller screen. */}
+      <div className="lg:grid lg:grid-cols-[360px_1fr] lg:gap-6 lg:items-start lg:space-y-0 space-y-3">
+      <div className="space-y-3">
       {/* পাবেন / দেবেন — split, never netted */}
       <div className="px-4">
         <Card className="bg-gradient-to-br from-[#ba0036] to-[#7d0025] border-0 text-white">
@@ -267,8 +311,28 @@ const Khata = () => {
         </Card>
       </div>
 
-      {/* Today's cash page */}
-      <div className="px-4 grid grid-cols-2 gap-2.5">
+      {/* The month-end page. One tap from the front page, because the number
+          he checks at the end of a month is not the one on it. */}
+      <div className="px-4">
+        <button
+          type="button"
+          onClick={() => navigate('/khata/report')}
+          className="w-full flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-white border border-gray-200 active:scale-[0.99] transition-transform min-h-tap"
+        >
+          <BarChart3 size={18} className="text-[#ba0036]" />
+          <span className="flex-1 text-left text-[15px] font-bold text-gray-900">
+            {t('রিপোর্ট ও হিসাব', 'Report')}
+          </span>
+          <span className="text-xs font-bold text-gray-400">
+            {t('মাস / সপ্তাহ', 'Month / week')}
+          </span>
+        </button>
+      </div>
+
+      {/* Today's cash page. ক্রয় joins বিক্রি and খরচ rather than hiding in a
+          menu: stock is bought most days, and an entry he cannot reach in one
+          tap is an entry he writes on paper instead. */}
+      <div className="px-4 grid grid-cols-3 gap-2.5">
         <button type="button" onClick={() => setCashKind('sale')}
           className="flex flex-col items-start gap-1 p-3.5 rounded-2xl bg-white border border-gray-200 active:scale-[0.98] transition-transform min-h-tap">
           <span className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
@@ -287,8 +351,20 @@ const Khata = () => {
             {formatTaka(summary?.today?.expense || 0, bn)}
           </span>
         </button>
+        <button type="button" onClick={() => setCashKind('purchase')}
+          className="flex flex-col items-start gap-1 p-3.5 rounded-2xl bg-white border border-gray-100 shadow-[0_1px_2px_rgba(16,24,40,0.04)] active:scale-[0.98] transition-transform min-h-tap">
+          <span className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
+            <PackagePlus size={14} /> {t('মাল তোলা', 'Stock')}
+          </span>
+          <span className="text-lg font-bold text-gray-900 tabular-nums">
+            {formatTaka(summary?.today?.purchase || 0, bn)}
+          </span>
+        </button>
       </div>
 
+      </div>
+
+      <div className="space-y-3">
       {/* Unsynced entries — stated plainly, never as an error. Nothing is lost;
           it just hasn't reached the server yet. */}
       {pending > 0 ? (
@@ -299,20 +375,38 @@ const Khata = () => {
         </div>
       ) : null}
 
-      {/* Search */}
-      <div className="px-4 relative">
-        <Search size={18} className="absolute left-7 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={t('নাম খুঁজুন', 'Search a name')}
-          className={`${inputClass} pl-11`}
-        />
+      {/* Search, with "add a person" beside it.
+          This used to be a floating button pinned above the tab bar. It sat on
+          the bottom-right of the screen — which is exactly where every row in
+          the list prints its BALANCE — so on any book long enough to fill the
+          screen, the last customer's number was underneath it. Scrolling moved
+          it clear, but the first thing he saw on opening খাতা was a covered
+          figure, and a covered figure is the one thing this screen exists to
+          show. Beside the search it is still always visible, still one tap, and
+          never on top of a number. */}
+      <div className="px-4 flex gap-2.5">
+        <div className="relative flex-1">
+          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={t('নাম খুঁজুন', 'Search a name')}
+            className={`${inputClass} pl-11`}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setAddOpen(true)}
+          className="shrink-0 w-[52px] min-h-tap rounded-xl bg-[#ba0036] text-white flex items-center justify-center shadow-[0_2px_8px_-2px_rgba(186,0,54,0.45)] active:scale-95 transition-transform"
+          aria-label={t('নতুন খাতা', 'New page')}
+        >
+          <UserPlus size={22} />
+        </button>
       </div>
 
       {/* The book */}
       {parties.length ? (
-        <div className="bg-white border-y border-gray-200">
+        <div className="bg-white border-y lg:border lg:rounded-2xl lg:overflow-hidden border-gray-100">
           {parties.map((p) => (
             <BalanceRow
               key={p.id}
@@ -338,17 +432,8 @@ const Khata = () => {
           </p>
         </div>
       )}
-
-      {/* Add a person. Fixed, above the tab bar, always in the same place. */}
-      <button
-        type="button"
-        onClick={() => setAddOpen(true)}
-        className="fixed right-4 z-40 w-14 h-14 rounded-full bg-[#ba0036] text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)' }}
-        aria-label={t('নতুন খাতা', 'New page')}
-      >
-        <UserPlus size={24} />
-      </button>
+      </div>
+      </div>
 
       <AddPartySheet
         open={addOpen}

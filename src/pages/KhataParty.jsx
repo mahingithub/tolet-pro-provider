@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Phone, Send, X, Undo2, CloudOff, Check,
+  ArrowLeft, Phone, Send, X, Undo2, CloudOff, Check, FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -12,6 +12,7 @@ import {
 import { enqueue, pendingForParty, pendingBalanceDelta, onQueueChanged } from '../services/ledgerQueue.js';
 import { useLedgerSync } from '../hooks/useLedgerSync.js';
 import { Button, Card, Field, inputClass } from '../components/ui/index.js';
+import PartyStatement from '../components/PartyStatement.jsx';
 import LoadingState from '../components/common/LoadingState.jsx';
 import ErrorState from '../components/common/ErrorState.jsx';
 
@@ -151,6 +152,7 @@ const KhataParty = () => {
   const [sheet, setSheet] = useState(null);
   const [pending, setPending] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [statementOpen, setStatementOpen] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -214,6 +216,27 @@ const KhataParty = () => {
     }
   };
 
+  /**
+   * The SECOND switch: let the server send these without him.
+   *
+   * Deliberately separate from the one above. "You may send this when I tap"
+   * and "send this every week on my behalf, to a customer, forever" are
+   * different promises, and the server refuses `reminderAuto` unless the first
+   * is already on.
+   */
+  const toggleAuto = async () => {
+    try {
+      const res = await updateParty(id, { reminderAuto: !party.reminder?.auto });
+      setParty(res.party);
+      toast.success(res.party.reminder?.auto
+        ? t('স্বয়ংক্রিয় রিমাইন্ডার চালু', 'Automatic reminders on')
+        : t('স্বয়ংক্রিয় রিমাইন্ডার বন্ধ', 'Automatic reminders off'));
+      await load();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
   if (loading) return <LoadingState />;
   if (error) {
     return <ErrorState message={error.message} onRetry={load} />;
@@ -224,7 +247,10 @@ const KhataParty = () => {
   const owes = balance > 0;
 
   return (
-    <div className="space-y-3 -mx-4 pb-28">
+    // `pb-28` reserves room for the pinned দিলাম/পেলাম bar plus the phone's tab
+    // bar. On desktop the tab bar is gone, so the reserve shrinks to just the
+    // action bar.
+    <div className="space-y-3 -mx-4 lg:mx-0 pb-28 lg:pb-24">
       {/* Header */}
       <div className="px-4 flex items-center gap-2">
         <button type="button" onClick={() => navigate('/khata')}
@@ -269,17 +295,59 @@ const KhataParty = () => {
         </Card>
       </div>
 
+      {/* বিবরণী — opening, running balance, closing. The page he turns around
+          to show the customer, kept separate from the list above because a
+          running total only reads downwards and must not include lines the
+          server has not accepted. */}
+      <div className="px-4 pb-1">
+        <Button variant="secondary" icon={FileText} fullWidth
+          onClick={() => setStatementOpen(true)}>
+          {t('বিবরণী দেখুন', 'View statement')}
+        </Button>
+      </div>
+
       {/* Reminder — only offered when the rules would actually allow it */}
       {party.phone && owes ? (
         <div className="px-4">
           {party.reminder?.optIn ? (
-            <Button variant="secondary" icon={Send} fullWidth loading={busy}
-              disabled={!canRemind} onClick={onRemind}
-              title={canRemind ? '' : t('সম্প্রতি পাঠানো হয়েছে', 'Sent recently')}>
-              {canRemind
-                ? t('বাকির কথা মনে করিয়ে দিন', 'Send a reminder')
-                : t('সম্প্রতি পাঠানো হয়েছে', 'Sent recently')}
-            </Button>
+            <>
+              <Button variant="secondary" icon={Send} fullWidth loading={busy}
+                disabled={!canRemind} onClick={onRemind}
+                title={canRemind ? '' : t('সম্প্রতি পাঠানো হয়েছে', 'Sent recently')}>
+                {canRemind
+                  ? t('বাকির কথা মনে করিয়ে দিন', 'Send a reminder')
+                  : t('সম্প্রতি পাঠানো হয়েছে', 'Sent recently')}
+              </Button>
+
+              {/* Automatic sending — offered only after the manual consent
+                  exists, and stated in full. He is agreeing on somebody else's
+                  behalf, so the rules he is agreeing to are on the screen
+                  rather than in a help page nobody opens. */}
+              <button
+                type="button"
+                onClick={toggleAuto}
+              className="w-full flex items-start gap-3 text-left px-4 py-3 mt-2.5 rounded-2xl bg-white border border-gray-200 active:scale-[0.99] transition-transform"
+            >
+              <span className={[
+                'mt-0.5 w-10 h-6 shrink-0 rounded-full transition-colors relative',
+                party.reminder?.auto ? 'bg-emerald-500' : 'bg-gray-300',
+              ].join(' ')}>
+                <span className={[
+                  'absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform',
+                  party.reminder?.auto ? 'translate-x-[18px]' : 'translate-x-0.5',
+                ].join(' ')} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-gray-800">
+                  {t('নিজে নিজে মনে করিয়ে দেবে', 'Remind automatically')}
+                </span>
+                <span className="block text-xs text-gray-500 mt-0.5 leading-relaxed">
+                  {t('সপ্তাহে একবার, শুধু ১০০ টাকার বেশি বাকি থাকলে, আর দোকানে না এলে। বাকি মিটে গেলে বন্ধ।',
+                     'Once a week, only above ৳100, and only if they have not been in. Stops when settled.')}
+                  </span>
+                </span>
+              </button>
+            </>
           ) : (
             <button type="button" onClick={toggleOptIn}
               className="w-full text-left px-4 py-3 rounded-2xl bg-white border border-gray-200 active:scale-[0.99] transition-transform">
@@ -297,7 +365,7 @@ const KhataParty = () => {
       ) : null}
 
       {/* The lines */}
-      <div className="bg-white border-y border-gray-200">
+      <div className="bg-white border-y lg:border lg:rounded-2xl lg:overflow-hidden border-gray-200">
         {/* Not-yet-synced entries sit at the top, visibly provisional. He wrote
             them, so he must see them — but he should also know they haven't
             left the phone. */}
@@ -367,8 +435,15 @@ const KhataParty = () => {
 
       {/* The two buttons. Pinned, thumb-height, always in the same place. */}
       <div
-        className="fixed inset-x-0 z-40 bg-white border-t border-gray-200 px-4 py-3"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)' }}
+        /* `lg:left-64` clears the sidebar, which a full-width bar would
+           otherwise run underneath. The 68px lift exists only to clear the
+           phone's tab bar, so `lg:bottom-0` drops it — and the offset moved
+           out of an inline style to get there, since an inline `bottom` wins
+           against any breakpoint class. */
+        className={[
+          'fixed inset-x-0 lg:left-64 z-40 bg-white border-t border-gray-200 px-4 lg:px-8 py-3',
+          'bottom-[calc(env(safe-area-inset-bottom,0px)+68px)] lg:bottom-0',
+        ].join(' ')}
       >
         <div className="max-w-2xl mx-auto grid grid-cols-2 gap-2.5">
           <Button variant="primary" size="lg" onClick={() => setSheet('credit')}>
@@ -387,6 +462,20 @@ const KhataParty = () => {
         onClose={() => setSheet(null)}
         onQueued={() => { syncPending(); drain(); }}
       />
+
+      {statementOpen ? (
+        <PartyStatement
+          partyId={id}
+          partyName={party.name}
+          // Passed in so the statement can SAY what it is missing rather than
+          // quietly leaving it out of a total a customer is being shown.
+          pendingCount={pending.length}
+          // Same consent as reminders — one permission, given once. Without it
+          // the server refuses, so the button is not offered either.
+          canSend={Boolean(party.phone && party.reminder?.optIn)}
+          onClose={() => setStatementOpen(false)}
+        />
+      ) : null}
     </div>
   );
 };

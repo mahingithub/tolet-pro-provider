@@ -21,7 +21,13 @@ import { apiFetch } from './apiClient.js';
  * @param {(pct:number)=>void} [onProgress]
  */
 export async function uploadImage(file, folder, onProgress) {
-  const sig = await apiFetch('/upload/signature', {
+  // `/merchant/upload/signature`, NOT `/upload/signature`. The latter is the
+  // rental app's endpoint, guarded by requireAuth, which rejects this app's
+  // token as `invalid_token` — a code apiClient.js treats as terminal. So the
+  // old path did not fail the upload, it ENDED THE SESSION: tapping "ছবি তুলুন"
+  // on the last step of registration logged the shopkeeper out, and did it
+  // again the moment he came back and retried the photo.
+  const sig = await apiFetch('/merchant/upload/signature', {
     method: 'POST',
     body: { folder },
   });

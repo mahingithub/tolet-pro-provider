@@ -160,6 +160,9 @@ const Listing = () => {
         <Badge tone="success">{t(FRESHNESS.fresh.bn, FRESHNESS.fresh.en)}</Badge>
       ) : null}
 
+      {/* Two columns on desktop. Each price field is one short question; a
+          single column just makes him scroll past the one he came to change. */}
+      <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
       {category.providerFields.map((f) => (
         <Card key={f.key}>
           <FieldRenderer
@@ -170,11 +173,19 @@ const Listing = () => {
           />
         </Card>
       ))}
+      </div>
 
       {/* Pinned above the tab bar, so saving never needs a scroll to find. */}
       <div
-        className="fixed inset-x-0 z-40 bg-white border-t border-gray-200 px-4 py-3"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)' }}
+        /* `lg:left-64` clears the sidebar, which a full-width bar would
+           otherwise run underneath. The 68px lift exists only to clear the
+           phone's tab bar, so `lg:bottom-0` drops it — and the offset moved
+           out of an inline style to get there, since an inline `bottom` wins
+           against any breakpoint class. */
+        className={[
+          'fixed inset-x-0 lg:left-64 z-40 bg-white border-t border-gray-200 px-4 lg:px-8 py-3',
+          'bottom-[calc(env(safe-area-inset-bottom,0px)+68px)] lg:bottom-0',
+        ].join(' ')}
       >
         <div className="max-w-2xl mx-auto">
           <Button

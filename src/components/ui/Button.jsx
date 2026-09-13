@@ -20,10 +20,13 @@ import { Loader2 } from 'lucide-react';
  *   ghost     tertiary, sits inside another surface
  */
 
+// `shadow-sm` on a coloured button draws a grey blur under a saturated fill,
+// which reads as dirty rather than raised. A shadow TINTED with the button's
+// own colour is what makes it look lifted instead of smudged.
 const VARIANTS = {
-  primary:   'bg-[#ba0036] text-white border border-transparent hover:bg-[#90002a] shadow-sm active:scale-[0.98]',
-  secondary: 'bg-white text-gray-800 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98]',
-  success:   'bg-emerald-600 text-white border border-transparent hover:bg-emerald-700 shadow-sm active:scale-[0.98]',
+  primary:   'bg-[#ba0036] text-white border border-transparent hover:bg-[#90002a] shadow-[0_2px_8px_-2px_rgba(186,0,54,0.45)] active:scale-[0.98]',
+  secondary: 'bg-white text-gray-800 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-[0_1px_2px_rgba(16,24,40,0.04)] active:scale-[0.98]',
+  success:   'bg-emerald-600 text-white border border-transparent hover:bg-emerald-700 shadow-[0_2px_8px_-2px_rgba(19,107,65,0.45)] active:scale-[0.98]',
   danger:    'bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:border-red-300 active:scale-[0.98]',
   ghost:     'bg-transparent text-gray-600 border border-transparent hover:bg-gray-100 hover:text-gray-900',
 };
@@ -56,6 +59,11 @@ const Button = ({
       disabled={disabled || loading}
       className={[
         'inline-flex items-center justify-center font-bold tracking-tight transition-all',
+        // `focus-visible`, not `focus`: a mouse click must not leave a ring
+        // behind, but a keyboard user needs to see where they are. This
+        // started mattering the day the app got a desktop layout — before
+        // that nobody was tabbing through it.
+        'outline-none focus-visible:ring-2 focus-visible:ring-[#ba0036]/40 focus-visible:ring-offset-2',
         // No `pointer-events-none` on disabled: a locked control often explains
         // itself through the native title tooltip, and killing pointer events
         // would silently take that explanation away.

@@ -217,7 +217,7 @@ const Reviews = () => {
       ) : null}
 
       {!loading && !error && reviews.length ? (
-        <div className="space-y-3">
+        <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
           {reviews.map((r) => (
             <ReviewCard
               key={r.id}

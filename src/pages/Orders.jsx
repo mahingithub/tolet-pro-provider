@@ -597,8 +597,11 @@ const Orders = () => {
       );
     }
 
+    // One column on a phone, two on a desktop. An order card is short and
+    // self-contained, so the wide screen buys him more orders in view rather
+    // than a longer line of text to read.
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
         {requests.map((req) => (
           <OrderCard
             key={req.id}
