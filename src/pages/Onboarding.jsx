@@ -151,8 +151,16 @@ const Onboarding = () => {
   }, [form, providerId]);
 
   if (!isAuthed && !booting) {
-    // Account creation runs through the normal auth screens; this wizard is
-    // only about the business.
+    // This wizard is about the BUSINESS; the account itself is made at
+    // /signup. The offer here used to be a single "লগইন করুন" under copy
+    // saying an existing To-Let Pro account was enough — which was wrong twice
+    // over. A rental account cannot sign in on this surface at all (separate
+    // collection, separate token audience), and there was no second button, so
+    // someone with no merchant account had nothing to tap: "register" on the
+    // login screen pointed back here, and here pointed back at login.
+    //
+    // Registration leads, because anyone who has landed on a dead guard is far
+    // more likely to be new than to have simply forgotten they were signed in.
     return (
       <div className="min-h-screen bg-[#f4f6f8] flex items-center justify-center px-4">
         <Card className="max-w-sm w-full text-center space-y-4">
@@ -160,11 +168,14 @@ const Onboarding = () => {
             {t('প্রথমে অ্যাকাউন্ট লাগবে', 'You need an account first')}
           </h1>
           <p className="text-sm text-gray-600">
-            {t('আগে থেকে To-Let Pro ব্যবহার করে থাকলে সেই নম্বর দিয়েই ঢুকুন — নতুন অ্যাকাউন্ট লাগবে না।',
-               'Already use To-Let Pro? Sign in with that number — no second account needed.')}
+            {t('সেবা প্রদানকারীর অ্যাকাউন্ট আলাদা — বাসা ভাড়ার To-Let Pro অ্যাকাউন্ট থাকলেও এখানে নতুন করে রেজিস্ট্রেশন করতে হবে। একই নম্বর ব্যবহার করতে পারবেন।',
+               'A provider account is separate — even with a To-Let Pro rental account you register again here. The same number works fine.')}
           </p>
-          <Button variant="primary" size="lg" fullWidth onClick={() => navigate('/login')}>
-            {t('লগইন করুন', 'Sign in')}
+          <Button variant="primary" size="lg" fullWidth onClick={() => navigate('/signup')}>
+            {t('রেজিস্ট্রেশন করুন', 'Register')}
+          </Button>
+          <Button variant="secondary" size="lg" fullWidth onClick={() => navigate('/login')}>
+            {t('আগেই অ্যাকাউন্ট আছে? লগইন করুন', 'Already registered? Sign in')}
           </Button>
         </Card>
       </div>

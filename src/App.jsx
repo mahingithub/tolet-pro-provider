@@ -8,6 +8,8 @@ import RequireProvider from './components/RequireProvider.jsx';
 import ProviderLayout from './components/ProviderLayout.jsx';
 
 import LoginPage from './pages/LoginPage.jsx';
+import SignupPage from './pages/SignupPage.jsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
 import Onboarding from './pages/Onboarding.jsx';
 import Orders from './pages/Orders.jsx';
 import Listing from './pages/Listing.jsx';
@@ -48,6 +50,15 @@ function App() {
         <BrowserRouter>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              {/* Creating a MERCHANT account — the only place it happens. This
+                  app has its own identity collection, so there is no rental
+                  account that can stand in for one. Without this route the
+                  "register" link had nowhere to go but /onboarding, which is
+                  guarded and bounced people straight back to the login card. */}
+              <Route path="/signup" element={<SignupPage />} />
+              {/* Password reset, OTP-based. The account has no email, so the
+                  phone is the only recovery channel there is. */}
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               {/* Outside the guard on purpose: an account with no business yet is
                   perfectly valid, and this is where it goes. */}
               <Route path="/onboarding" element={<Onboarding />} />

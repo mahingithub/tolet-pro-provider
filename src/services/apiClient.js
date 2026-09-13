@@ -49,6 +49,8 @@ const NO_AUTH_PATHS = [
   '/merchant/auth/login',
   '/merchant/auth/signup/start',
   '/merchant/auth/signup/verify',
+  '/merchant/auth/forgot-password',
+  '/merchant/auth/reset-password',
   REFRESH_PATH,
 ];
 
@@ -213,7 +215,14 @@ export async function apiFetch(path, options = {}) {
     // and skipping this on the retry would leave the shopkeeper looping on an
     // error toast with a dead token in local storage.
     if (TERMINAL_AUTH_CODES.has(data.code)) {
-      endSession(data.code === 'session_revoked' ? 'access_revoked' : 'session_expired');
+      // `password_changed` is kept distinct from a plain expiry now that a
+      // reset exists: it signs out every OTHER device too, and "সেশন শেষ
+      // হয়েছে" on a phone the shopkeeper was not touching reads as a fault.
+      // Naming the cause is the difference between that and "yes, I did that".
+      endSession({
+        session_revoked: 'access_revoked',
+        password_changed: 'password_changed',
+      }[data.code] || 'session_expired');
       throw toError(res.status, data);
     }
 

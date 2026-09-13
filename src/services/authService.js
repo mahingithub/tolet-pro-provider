@@ -46,6 +46,32 @@ export async function verifySignup({ phone, otp }) {
   return data.merchant;
 }
 
+/**
+ * Step 1 of a password reset — sends the OTP.
+ *
+ * Resolves identically for a number with an account and one without: the
+ * server refuses to say which, so the UI must not pretend to know either.
+ */
+export async function forgotPassword({ phone }) {
+  return apiFetch('/merchant/auth/forgot-password', {
+    method: 'POST',
+    auth: false,
+    body: { phone },
+  });
+}
+
+/**
+ * Step 2 — sets the new password. Opens NO session on purpose: the reset signs
+ * every device out, so the caller sends the shopkeeper to the login screen.
+ */
+export async function resetPassword({ phone, otp, password }) {
+  return apiFetch('/merchant/auth/reset-password', {
+    method: 'POST',
+    auth: false,
+    body: { phone, otp, password },
+  });
+}
+
 /** Who am I, per the server. The source of truth on every boot. */
 export async function fetchMe() {
   const data = await apiFetch('/merchant/auth/me');
