@@ -1,10 +1,10 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Camera, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useProviderAuth } from '../context/ProviderAuthContext.jsx';
-import { useLang, toBnDigits } from '../context/LanguageContext.jsx';
+import { useLang } from '../context/LanguageContext.jsx';
 import { useCategories } from '../hooks/useCategories.js';
 import {
   createProvider, updateProvider, updateFields, submitForReview,
@@ -17,6 +17,9 @@ import { iconFor } from '../components/fields/categoryIcons.js';
 // step change rather than by a navigation — keeps it out of the daily download
 // without the router/Suspense interaction that made lazy ROUTES unsafe.
 const LocationPicker = lazy(() => import('../components/LocationPicker.jsx'));
+import CoverageEditor, {
+  isCoverageComplete, CoverageSummary, FALLBACK_COVERAGE,
+} from '../components/CoverageEditor.jsx';
 import { Button, Card, Field, inputClass } from '../components/ui/index.js';
 import LoadingState from '../components/common/LoadingState.jsx';
 import ErrorState from '../components/common/ErrorState.jsx';
@@ -67,8 +70,8 @@ function StepBar({ index, total }) {
 const Onboarding = () => {
   const navigate = useNavigate();
   const { isAuthed, providers, refreshProviders, booting } = useProviderAuth();
-  const { t, bn } = useLang();
-  const { categories, loading: catsLoading, error: catsError, retry } = useCategories();
+  const { t } = useLang();
+  const { categories, meta, loading: catsLoading, error: catsError, retry } = useCategories();
 
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -87,6 +90,39 @@ const Onboarding = () => {
     () => categories.find((c) => c.id === form.category) || null,
     [categories, form.category],
   );
+
+  // How far this trade travels is a property of the trade, so the ladder comes
+  // from the category. A গৃহকর্মী is offered 1.5/3/5 km; শিফটিং is offered
+  // 5/10/20, because a mover who only goes 5 km is not a mover.
+  const coverageOptions = useMemo(
+    () => category?.coverageOptions || meta?.coverageOptions || FALLBACK_COVERAGE,
+    [category, meta],
+  );
+
+  // Which QUESTION this category's coverage step asks. `radius` is a distance;
+  // `areas` is a list of thanas, and for an areas category that list is the
+  // only thing that makes the provider findable at all — an empty one matches
+  // no tenant whose thana we know. See components/CoverageEditor.jsx.
+  const coverageMode = form.coverage?.mode || category?.defaultCoverage?.mode || 'radius';
+
+  /**
+   * The coverage answer as it stands, with the category's default filled in.
+   *
+   * Resolved here rather than at the button, because this is also what gets
+   * POSTed: the step used to set coverage into local state only and `persist`
+   * builds its payload from the CHANGES passed to `go()`, so every provider's
+   * radius tap was quietly dropped and he kept the category default.
+   */
+  const coverage = useMemo(() => {
+    if (form.coverage) return form.coverage;
+    if (!category) return null;
+    return coverageMode === 'areas'
+      ? { mode: 'areas', thanas: [] }
+      : {
+        mode: 'radius',
+        radiusKm: category.defaultCoverage?.radiusKm ?? coverageOptions[0]?.km,
+      };
+  }, [form.coverage, category, coverageMode, coverageOptions]);
 
   // ─── Resume an interrupted registration ──────────────────────────────────
   // The single most important behaviour in this screen.
@@ -108,8 +144,14 @@ const Onboarding = () => {
     });
     // Jump to the first thing that is still missing, rather than making
     // someone tap through four screens they already filled in.
-    if (!draft.fields || !Object.keys(draft.fields).length) setStep(STEPS.indexOf('fields'));
-    else if (!draft.photoUrl) setStep(STEPS.indexOf('photo'));
+    //
+    // Coverage comes FIRST among the checks because it is the one a draft can
+    // be missing without looking incomplete: an areas-mode draft created
+    // before this step could pick thanas — or abandoned on it — carries an
+    // empty list, which submits cleanly and then matches nobody.
+    const cov = draft.coverage || null;
+    if (cov?.mode === 'areas' && !(cov.thanas || []).length) setStep(STEPS.indexOf('coverage'));
+    else if (!draft.fields || !Object.keys(draft.fields).length) setStep(STEPS.indexOf('fields'));
     else setStep(STEPS.indexOf('photo'));
   }, [providers, booting, providerId]);
 
@@ -262,7 +304,16 @@ const Onboarding = () => {
         setStep(STEPS.indexOf('fields'));
         toast.error(t('কিছু তথ্য বাকি আছে', 'Some answers are missing'));
       } else if (err.code === 'incomplete_registration') {
-        toast.error(t('রেজিস্ট্রেশন সম্পূর্ণ হয়নি', 'Registration is incomplete'));
+        // The server names what is missing. Coverage is the one worth steering
+        // him back to by hand: a draft that predates this step, or one resumed
+        // from another device, can reach submit with an empty thana list, and
+        // "রেজিস্ট্রেশন সম্পূর্ণ হয়নি" on a form that looks complete is a dead end.
+        if ((err.details || []).includes('coverage')) {
+          setStep(STEPS.indexOf('coverage'));
+          toast.error(t('কোন কোন এলাকায় সেবা দেন সেটা বাছুন', 'Choose the areas you serve'));
+        } else {
+          toast.error(t('রেজিস্ট্রেশন সম্পূর্ণ হয়নি', 'Registration is incomplete'));
+        }
       } else {
         toast.error(err.message);
       }
@@ -278,7 +329,11 @@ const Onboarding = () => {
     category: t('কী ধরনের সেবা দেন?', 'What do you provide?'),
     name:     category ? t(category.nameLabel.bn, category.nameLabel.en) : '',
     location: t('আপনার অবস্থান কোথায়?', 'Where are you?'),
-    coverage: t('কতদূর পর্যন্ত সেবা দেন?', 'How far do you serve?'),
+    // Two different questions, because the two trades answer differently: a
+    // plumber travels a distance, an ISP or a গৃহকর্মী covers named areas.
+    coverage: coverageMode === 'areas'
+      ? t('কোন কোন এলাকায় সেবা দেন?', 'Which areas do you serve?')
+      : t('কতদূর পর্যন্ত সেবা দেন?', 'How far do you serve?'),
     fields:   t('আপনার দাম ও তথ্য', 'Your prices and details'),
     photo:    category ? t(category.photoLabel.bn, category.photoLabel.en) : '',
   }[current];
@@ -365,33 +420,13 @@ const Onboarding = () => {
 
         {/* 4 — coverage */}
         {current === 'coverage' ? (
-          <Card className="space-y-3">
-            <p className="text-sm text-gray-600">
-              {t('যত দূর পর্যন্ত আপনি যেতে রাজি।', 'How far you are willing to travel.')}
-            </p>
-            <div className="grid gap-2.5">
-              {[
-                { km: 1.5, bn: 'এই এলাকা (১.৫ কিমি)', en: 'This area (1.5 km)' },
-                { km: 3,   bn: '৩ কিলোমিটার',          en: '3 km' },
-                { km: 5,   bn: '৫ কিলোমিটার',          en: '5 km' },
-              ].map((opt) => {
-                const active = (form.coverage?.radiusKm ?? category.defaultCoverage?.radiusKm) === opt.km;
-                return (
-                  <button
-                    key={opt.km}
-                    type="button"
-                    onClick={() => patch({ coverage: { mode: 'radius', radiusKm: opt.km } })}
-                    className={[
-                      'flex items-center justify-between px-4 py-4 rounded-xl border text-base font-bold min-h-tap transition-all active:scale-[0.98]',
-                      active ? 'bg-crimson-50 border-[#ba0036] text-[#ba0036]' : 'bg-white border-gray-300 text-gray-800',
-                    ].join(' ')}
-                  >
-                    {t(opt.bn, opt.en)}
-                    {active ? <Check size={18} /> : null}
-                  </button>
-                );
-              })}
-            </div>
+          <Card>
+            <CoverageEditor
+              mode={coverageMode}
+              value={coverage}
+              options={coverageOptions}
+              onChange={(next) => patch({ coverage: next })}
+            />
           </Card>
         ) : null}
 
@@ -461,13 +496,13 @@ const Onboarding = () => {
               <p className="text-sm text-gray-600">
                 {t(category.label.bn, category.label.en)}
                 {' · '}
-                {/* Bengali numerals — a Latin "3" sitting inside a Bangla
-                    sentence is exactly the kind of small wrongness this
-                    audience notices. */}
-                {bn
-                  ? toBnDigits(form.coverage?.radiusKm ?? category.defaultCoverage?.radiusKm)
-                  : (form.coverage?.radiusKm ?? category.defaultCoverage?.radiusKm)}
-                {' '}{t('কিমি', 'km')}
+                {/* Whatever kind of answer this category's coverage is — a
+                    distance or a list of thanas. This used to print the radius
+                    unconditionally, so an areas provider read a bare "কিমি"
+                    with nothing in front of it. Bengali numerals throughout: a
+                    Latin "3" inside a Bangla sentence is exactly the kind of
+                    small wrongness this audience notices. */}
+                <CoverageSummary coverage={coverage} />
               </p>
             </Card>
           </div>
@@ -498,8 +533,15 @@ const Onboarding = () => {
               disabled={
                 (current === 'name' && !form.name.trim())
                 || (current === 'location' && !Number.isFinite(form.lat))
+                // An areas provider must name at least one thana. Walking past
+                // this step used to be free, and it produced a listing that was
+                // live, paid for, and matched by no tenant search.
+                || (current === 'coverage' && !isCoverageComplete(coverage))
               }
-              onClick={() => go({})}
+              // The coverage step carries its answer explicitly: `persist`
+              // builds its PATCH from what `go()` is handed, so a step that
+              // passed `{}` saved nothing at all.
+              onClick={() => go(current === 'coverage' ? { coverage } : {})}
             >
               {t('পরবর্তী', 'Next')}
             </Button>
